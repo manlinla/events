@@ -20,14 +20,14 @@ import org.json.JSONObject;
 @WebServlet("/search")
 public class SearchItem extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
-    /**
-     * @see HttpServlet#HttpServlet()
-     */
-    public SearchItem() {
-        super();
-        // TODO Auto-generated constructor stub
-    }
+
+	/**
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public SearchItem() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
 
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
@@ -35,20 +35,32 @@ public class SearchItem extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		response.addHeader("Access-Control-Allow-Origin", "*");
 
-//		//Create a PrintWriter from response such that we can add data to response.
-//		PrintWriter out = response.getWriter();
-//		if (request.getParameter("username") != null) {
-//			//Get the username sent from the client
-//			String username = request.getParameter("username");
-//            //In the output stream, add something to response body. 
-//			out.print("Hello " + username);
-//		}
-//		// Send response back to client
-//		out.close();
-		
-		response.setContentType("application/json");
-		response.addHeader("Access-Control-Allow-Origin", "*");
-		PrintWriter out = response.getWriter();
+		// edition 1
+		//		//Create a PrintWriter from response such that we can add data to response.
+		//		PrintWriter out = response.getWriter();
+		//		if (request.getParameter("username") != null) {
+		//			//Get the username sent from the client
+		//			String username = request.getParameter("username");
+		//            //In the output stream, add something to response body. 
+		//			out.print("Hello " + username);
+		//		}
+		//		// Send response back to client
+		//		out.close();
+
+		// edition 2
+		//		response.setContentType("application/json");
+		//		response.addHeader("Access-Control-Allow-Origin", "*");
+		//		PrintWriter out = response.getWriter();
+		//
+		//		JSONArray array = new JSONArray();
+		//		try {
+		//			array.put(new JSONObject().put("username", "abcd"));
+		//			array.put(new JSONObject().put("username", "1234"));
+		//		} catch (JSONException e) {
+		//			e.printStackTrace();
+		//		}
+		//		out.print(array);
+		//		out.close();
 
 		JSONArray array = new JSONArray();
 		try {
@@ -57,8 +69,7 @@ public class SearchItem extends HttpServlet {
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-		out.print(array);
-		out.close();
+		RpcHelper.writeJsonArray(response, array);
 
 
 	}
