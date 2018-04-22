@@ -1,10 +1,12 @@
 package db.mysql;
 
+import entity.Item.ItemBuilder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -27,6 +29,7 @@ public class MySQLConnection implements DBConnection{
 
 	@Override
 	public void close() {
+
 		if (conn != null) {
 			try {
 				conn.close();
@@ -53,7 +56,11 @@ public class MySQLConnection implements DBConnection{
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+
 	}
+
+
+
 
 	@Override
 	public void unsetFavoriteItems(String userId, List<String> itemIds) {
@@ -71,42 +78,121 @@ public class MySQLConnection implements DBConnection{
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+
+
 	}
 
 	@Override
 	public Set<String> getFavoriteItemIds(String userId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+		 if (conn == null) {
+				return new HashSet<>();
+			    }
+			    Set<String> favoriteItems = new HashSet<>();
+			    try {
+			      String sql = "SELECT item_id from history WHERE user_id = ?";
+			      PreparedStatement statement = conn.prepareStatement(sql);
+			      statement.setString(1, userId);
+			      ResultSet rs = statement.executeQuery();
+			      while (rs.next()) {
+			        String itemId = rs.getString("item_id");
+			        favoriteItems.add(itemId);
+			      }
+			    } catch (SQLException e) {
+			      e.printStackTrace();
+			    }
+			    return favoriteItems;
 
-	@Override
-	public Set<Item> getFavoriteItems(String userId) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
 	public Set<String> getCategories(String itemId) {
-		// TODO Auto-generated method stub
-		return null;
+		if (conn == null) {
+			return null;
+		}
+		Set<String> categories = new HashSet<>();
+		try {
+			String sql = "SELECT category from categories WHERE item_id = ? ";
+			PreparedStatement statement = conn.prepareStatement(sql);
+			statement.setString(1, itemId);
+			ResultSet rs = statement.executeQuery();
+			while (rs.next()) {
+				categories.add(rs.getString("category"));
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return categories;
+
+	}
+
+	@Override
+	public Set<Item> getFavoriteItems(String userId){
+		if (conn == null) {
+			return new HashSet<>();
+		}
+		//get itemid from user id
+		Set<Item> favoriteItems = new HashSet<>();
+		Set<String> itemIds = getFavoriteItemIds(userId);
+
+
+		try {
+			for (String itemId : itemIds) {
+				String sql = "SELECT * FROM items WHERE item_id = ?";
+				PreparedStatement statement = conn.prepareStatement(sql);
+				statement.setString(1, itemId);
+
+				ResultSet rs = statement.executeQuery();
+				// item_id,   name,  rating, url, image_url ,  ...., distance  
+				//                                                             
+				//  abcd      abcd     1      xx      xxx             5     
+				//  1234      1234     2      yy      yyy             5     <-
+
+
+				ItemBuilder builder = new ItemBuilder();
+				while (rs.next()) {
+					builder.setItemId(rs.getString("item_id"));
+					builder.setName(rs.getString("name"));
+					builder.setAddress(rs.getString("address"));
+					builder.setImageUrl(rs.getString("image_url"));
+					builder.setUrl(rs.getString("url"));
+					builder.setCategories(getCategories(itemId));
+					builder.setDistance(rs.getDouble("distance"));
+					builder.setRating(rs.getDouble("rating"));
+
+					favoriteItems.add(builder.build());
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return favoriteItems;
+
+
 	}
 
 	@Override
 	public List<Item> searchItems(double lat, double lon, String term) {
+		//tm api, inserted from rpc searchitem
 		TicketMasterAPI tmAPI = new TicketMasterAPI();
 		List<Item> items = tmAPI.search(lat, lon, term);
+
+		// save searched items in db, better for saving.
+		// otherwise gotta search again when you save
 		for (Item item : items) {
 			saveItem(item);
 		}
+
 		return items;	
 	}
 
 	@Override
 	public void saveItem(Item item) {
+		//check if connection is valid
 		if (conn == null) {
 			return;
 		}
 		try {
+			//each setString is to replace ? with recoganizable data
 			String sql = "INSERT IGNORE INTO items VALUES (?,?,?,?,?,?,?)";  // SQL injection
 
 			PreparedStatement statement = conn.prepareStatement(sql);
@@ -120,6 +206,8 @@ public class MySQLConnection implements DBConnection{
 			statement.execute();
 
 			sql = "INSERT IGNORE INTO categories VALUES (?,?)";  // SQL injection
+
+			//diff fields store at diff categories 
 			for (String category : item.getCategories()) {
 				statement = conn.prepareStatement(sql);
 				statement.setString(1, item.getItemId());
@@ -134,14 +222,44 @@ public class MySQLConnection implements DBConnection{
 
 	@Override
 	public String getFullname(String userId) {
-		// TODO Auto-generated method stub
-		return null;
+		if (conn == null) {
+			return null;
+		}
+		String name = "";
+		try {
+			String sql = "SELECT first_name, last_name from users WHERE user_id = ?";
+			PreparedStatement statement = conn.prepareStatement(sql);
+			statement.setString(1, userId);
+			ResultSet rs = statement.executeQuery();
+			if (rs.next()) {
+				name = String.join(" ", rs.getString("first_name"), rs.getString("last_name"));
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return name;
+
 	}
 
 	@Override
 	public boolean verifyLogin(String userId, String password) {
-		// TODO Auto-generated method stub
+		if (conn == null) {
+			return false;
+		}
+		try {
+			String sql = "SELECT user_id from users WHERE user_id = ? and password = ?";
+			PreparedStatement statement = conn.prepareStatement(sql);
+			statement.setString(1, userId);
+			statement.setString(2, password);
+			ResultSet rs = statement.executeQuery();
+			if (rs.next()) {
+				return true;
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
 		return false;
+
 	}
 
 }
