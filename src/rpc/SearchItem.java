@@ -39,7 +39,7 @@ public class SearchItem extends HttpServlet {
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		response.addHeader("Access-Control-Allow-Origin", "*");
+		//		response.addHeader("Access-Control-Allow-Origin", "*");
 
 		// edition 1
 		//		//Create a PrintWriter from response such that we can add data to response.
@@ -79,6 +79,7 @@ public class SearchItem extends HttpServlet {
 		//		RpcHelper.writeJsonArray(response, array);
 
 		// edit 4: call tm api
+		String userId = request.getParameter("user_id");
 		double lat = Double.parseDouble(request.getParameter("lat"));
 		double lon = Double.parseDouble(request.getParameter("lon"));
 		// term can be empty or null.
@@ -91,12 +92,16 @@ public class SearchItem extends HttpServlet {
 
 		DBConnection connenction = DBConnectionFactory.getDBConnection();
 		List<Item> items = connenction.searchItems(lat, lon, term);
+		Set<String> favorite = connenction.getFavoriteItemIds(userId);
 		List<JSONObject> list = new ArrayList<>();
 
 		try {
 			for (Item item : items) {
 				// Add a thin version of item object
 				JSONObject obj = item.toJSONObject();
+				// Check if this is a favorite one.
+				// This field is required by frontend to correctly display favorite items.
+				obj.put("favorite", favorite.contains(item.getItemId()));
 				list.add(obj);
 			}
 		} catch (Exception e) {

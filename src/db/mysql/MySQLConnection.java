@@ -238,7 +238,6 @@ public class MySQLConnection implements DBConnection{
 			System.out.println(e.getMessage());
 		}
 		return name;
-
 	}
 
 	@Override
@@ -259,7 +258,6 @@ public class MySQLConnection implements DBConnection{
 			System.out.println(e.getMessage());
 		}
 		return false;
-
 	}
 
 }
